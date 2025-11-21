@@ -1,0 +1,737 @@
+/// ETML
+/// Auteur : Selim Chouk
+/// Date : 26.10.2025
+/// <summary>
+/// Programme principal du jeu Puissance 4.
+/// </summary>
+
+using System;
+
+namespace App
+{
+    class Puissance4
+    {
+        /// <summary>
+        /// Point d'entrée du programme.
+        /// Initialise la console et lance la boucle principale du jeu.
+        /// </summary>
+        /// <param name="args">Arguments du programme (non utilisés).</param>
+        static void Main(string[] args)
+        {
+            //On nettoie ce qui se trouve dans le terminal avant d'afficher le programme.
+            Console.Clear();
+
+            //Déclaration variables, nombres de lignes et colones de la grille.
+            string[] TITRE = {
+                "╔══════════════════════════════════════════════════╗",
+                "║       Bienvenue dans le jeu de puissance 4       ║",
+                "║       Réalisé par Selim Chouk                    ║",
+                "╚══════════════════════════════════════════════════╝"
+                };
+
+            //Id joueurs
+            const byte JOUEUR1 = 1;
+            const byte JOUEUR2 = 2;
+
+            //Booléen qui est faux si il n'y pas de gagnant.
+            bool gagnantTrouve = false;
+
+            //Gain nombre Jetons.
+            const byte GAIN = 4;
+
+            //Dimensions du terminal au démarrage.
+            const byte TERMINAL_LARGEUR = 150;
+            const byte TERMINAL_HAUTEUR = 50;
+
+            Console.SetWindowSize(TERMINAL_LARGEUR, TERMINAL_HAUTEUR);
+
+            // Position titre en setCurseur.
+            const byte POS_TITRE_X = 50, POS_TITRE_Y = 1;
+            const byte HAUT_TITRE = 4;
+
+            //Dimensions max et min que peut avoir la grille principale.
+            const byte MIN_LIGNES = 5, MAX_LIGNES = 13;
+            const byte MIN_COLONES = 6, MAX_COLONES = 16;
+
+            //Dimension stable de la hauteur de la grille de navigation, celle-ci ne changera jamais.
+            const byte HAUTEUR_GRILLE_NAVIGATION = 3;
+
+            //Positions liées au setCurseurs, pour afficher les diffèrentes grilles, au bon endroit dans le terminal.
+            const byte POS_GRILLE_NAVIGATION_X = 10;
+            const byte POS_GRILLE_NAVIGATION_Y = 10;
+            const byte POS_GRILLE_PRINCIPALE_X = 10;
+            const byte POS_GRILLE_PRINCIPALE_Y = 15;
+
+            //Variables qui contiennent le nombre de lignes et colones choisies par l'utilisateur.
+            byte nbColones = 0, nbLignes = 0;
+
+
+            AffichageIntro();
+
+            //Déclaration des deux grilles principales.
+            string[,] grilleNavigation = new string[HAUTEUR_GRILLE_NAVIGATION, nbColones];
+            string[,] grillePrincipale = new string[nbLignes, nbColones];
+
+            //Création du tableau qui va contenir le jeu de jetons sans les bordures.
+            //Le tableau est initialsé par défaut à 0 dans tous les index et prendra la valeur 1 si un jeton est ajouté. 
+            int[,] grilleJeu = new int[nbLignes / 2, nbColones / 2];
+
+            //Création des deux grilles utiles à notre programme.
+            CreationGrille(grilleNavigation, HAUTEUR_GRILLE_NAVIGATION);
+            CreationGrille(grillePrincipale, nbLignes);
+
+            //Affichage grille de naviagation.
+            AffichageGrille(grilleNavigation, HAUTEUR_GRILLE_NAVIGATION, POS_GRILLE_NAVIGATION_X, POS_GRILLE_NAVIGATION_Y);
+
+            //Affichage mode utilisation.
+            ModeUtilisationAffichage();
+
+            //Affichage grille principale.
+            AffichageGrille(grillePrincipale, nbLignes, POS_GRILLE_PRINCIPALE_X, POS_GRILLE_PRINCIPALE_Y);
+
+            //Commencement jeu.
+            DeplacementsGrilleNavigation();
+
+            Console.ReadLine();
+
+            /*************************************************************************************************************************************************************************************************/
+            /******************************************************************************Fonctions utiles  au programme*************************************************************************************/
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Demande à l'utilisateur de rentrer nbLignes et nbColones et appelle la fonction test dimension pour tester les limites. 
+            /// </summary>
+            void AffichageIntro()
+            {
+                //Afficher le titre de bienvenue.
+                for (int i = 0; i < HAUT_TITRE; i++)
+                {
+                    Console.SetCursorPosition(POS_TITRE_X, POS_TITRE_Y + i);
+                    Console.WriteLine(TITRE[i]);
+                }
+
+                SautDeLigne();
+                SautDeLigne();
+
+                Console.WriteLine("Merci d'entrer le nombre de lignes");
+                Console.Write("La valeur doit être plus grande que ");
+
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write(MIN_LIGNES);
+                Console.ResetColor();
+
+                Console.Write(" et plus petite que ");
+
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(MAX_LIGNES);
+                Console.ResetColor();
+
+                //On appelle la fonction qui récupère les lignes.
+                nbLignes = TestValiditeDimension(MIN_LIGNES, MAX_LIGNES);
+
+                Console.WriteLine("Merci d'entrer le nombre de colones");
+                Console.Write("La valeur doit être plus grande que ");
+
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write(MIN_COLONES);
+                Console.ResetColor();
+
+                Console.Write(" et plus petite que ");
+
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(MAX_COLONES);
+                Console.ResetColor();
+
+                //On appelle la fonction qui récupère les colones.
+                nbColones = TestValiditeDimension(MIN_COLONES, MAX_COLONES);
+
+                Console.Clear();
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Effectue un saut de ligne dans le terminal.
+            /// </summary>
+            void SautDeLigne()
+            {
+                Console.WriteLine();
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Récupère et valide le nombre de lignes ou de colonnes saisi par l'utilisateur.
+            /// </summary>
+            /// <param name="minVal">Valeur minimale.</param>
+            /// <param name="maxVal">Valeur maximale.</param>
+            /// <returns>Valeur validée.</returns>
+            byte TestValiditeDimension(byte minVal, byte maxVal)
+            {
+                byte dimension = 0;
+
+                while (true) //La boucle sera quittée uniquement lorsque le return sera activé par avant, boucle infinie tant que l'utilisateur ne saisie pas les bonnes valeurs.
+                {
+                    Console.Write("Votre valeur : ");
+                    string input = Console.ReadLine();
+
+                    //
+                    SautDeLigne();
+
+                    if (!byte.TryParse(input, out dimension))
+                    {
+                        Console.WriteLine("Votre valeur n'est pas un nombre !");
+                        continue;
+                    }
+
+
+                    if (dimension <= minVal || dimension >= maxVal)
+                    {
+                        Console.Write("Votre valeur n'est pas dans les limites fixées >");
+
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Write(minVal);
+                        Console.ResetColor();
+                        Console.Write(" <");
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Write(maxVal);
+                        Console.ResetColor();
+                        Console.WriteLine(", Merci de réssayer !");
+                        continue;
+                    }
+                    return ((byte)(dimension * 2 + 1)); //Nombre de caractères nécéssaire dans le tableau de string pour créer la grille principale.
+                }
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Construit les grilles (navigation ou principale).
+            /// </summary>
+            /// <param name="grille">Grille à construire.</param>
+            /// <param name="nbLignes">Nombre de lignes de la grille.</param>
+            void CreationGrille(string[,] grille, byte nbLignes)
+            {
+                CoinSupp(grille);
+                CoinInf(nbLignes, grille);
+                MilieuGrille(nbLignes, grille);
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            // <summary>
+            /// Construit la partie supérieure de la grille.
+            /// </summary>
+            /// <param name="grille">Grille à modifier.</param>
+            void CoinSupp(string[,] grille)
+            {
+                const byte LIGNES = 0;
+                for (byte colone = 0; colone < nbColones; colone++)
+                {
+                    if (colone == 0)
+                        grille[LIGNES, colone] = "╔";
+                    else if (colone == (nbColones - 1))
+                        grille[LIGNES, colone] = "╗";
+                    else if (colone % 2 == 0)
+                        grille[LIGNES, colone] = "╦";
+                    else
+                        grille[LIGNES, colone] = "═══";
+                }
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Construit la partie centrale de la grille.
+            /// </summary>
+            /// <param name="nbLignes">Nombre de lignes.</param>
+            /// <param name="grille">Grille à modifier.</param>
+            void MilieuGrille(byte nbLignes, string[,] grille)
+            {
+                for (byte ligne = 1; ligne < (nbLignes - 1); ligne++)
+                {
+                    for (byte colone = 0; colone < nbColones; colone++)
+                    {
+                        if ((ligne % 2 == 0) && (colone == 0))
+                            grille[ligne, colone] = "╠";
+                        else if ((ligne % 2 == 0) && (colone == nbColones - 1))
+                            grille[ligne, colone] = "╣";
+                        else if ((ligne % 2 == 1) && (colone % 2 == 0))
+                            grille[ligne, colone] = "║";
+                        else if ((ligne % 2 == 0) && (colone > 0) && (colone < (nbColones - 1) && (colone % 2 == 0)))
+                            grille[ligne, colone] = "╬";
+                        else if ((ligne % 2 == 0) && (colone % 2 == 1))
+                            grille[ligne, colone] = "═══";
+                        else
+                            grille[ligne, colone] = "   ";
+                    }
+                }
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Construit la partie inférieure de la grille.
+            /// </summary>
+            /// <param name="nbLignes">Nombre de lignes.</param>
+            /// <param name="grille">Grille à modifier.</param>
+            void CoinInf(byte nbLignes, string[,] grille)
+            {
+                for (byte colone = 0; colone < nbColones; colone++)
+                {
+                    if (colone == 0)
+                        grille[nbLignes - 1, colone] = "╚";
+                    else if (colone == (nbColones - 1))
+                        grille[nbLignes - 1, colone] = "╝";
+                    else if (colone % 2 == 0)
+                        grille[nbLignes - 1, colone] = "╩";
+                    else
+                        grille[nbLignes - 1, colone] = "═══";
+                }
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Affiche une grille à la position demandée.
+            /// </summary>
+            /// <param name="grille">Grille à afficher.</param>
+            /// <param name="nbLignes">Nombre de lignes de la grille.</param>
+            /// <param name="posX">Position X d'affichage.</param>
+            /// <param name="posY">Position Y d'affichage.</param>
+            void AffichageGrille(string[,] grille, byte nbLignes, byte posX, byte posY)
+            {
+                for (int yGrille = 0; yGrille < nbLignes; yGrille++)
+                {
+                    Console.SetCursorPosition(posX, posY + yGrille);
+                    for (int xGrille = 0; xGrille < nbColones; xGrille++)
+                    {
+                        Console.Write(grille[yGrille, xGrille]);
+                    }
+                    SautDeLigne();
+                }
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Affiche le menu d'utilisation à droite du terminal.
+            /// </summary>
+            void ModeUtilisationAffichage()
+            {
+                const byte COIN_FENETRE_X = 75, COIN_FENETRE_Y = 10; //Position de base pour les commentaires du jeu.
+
+                for (byte i = 0; i < HAUT_TITRE; i++)
+                {
+                    Console.SetCursorPosition(POS_TITRE_X, POS_TITRE_Y + i);
+                    Console.WriteLine(TITRE[i]);
+                }
+
+                Console.SetCursorPosition(COIN_FENETRE_X, COIN_FENETRE_Y);
+                Console.WriteLine("Mode d'utilisation");
+                Console.SetCursorPosition(COIN_FENETRE_X, COIN_FENETRE_Y + 1);
+                Console.WriteLine("------------------");
+                Console.SetCursorPosition(COIN_FENETRE_X + 5, COIN_FENETRE_Y + 2);
+                Console.WriteLine("Déplacement");
+                Console.SetCursorPosition(COIN_FENETRE_X + 5, COIN_FENETRE_Y + 3);
+                Console.WriteLine("Tir");
+                Console.SetCursorPosition(COIN_FENETRE_X + 5, COIN_FENETRE_Y + 4);
+                Console.WriteLine("Quitter");
+
+                Console.SetCursorPosition(COIN_FENETRE_X + 25, COIN_FENETRE_Y + 2);
+                Console.WriteLine("Touches direcetionelles");
+                Console.SetCursorPosition(COIN_FENETRE_X + 25, COIN_FENETRE_Y + 3);
+                Console.WriteLine("Spacebar ou Enter");
+                Console.SetCursorPosition(COIN_FENETRE_X + 25, COIN_FENETRE_Y + 4);
+                Console.WriteLine("Espace");
+
+                Console.SetCursorPosition(COIN_FENETRE_X + 5, COIN_FENETRE_Y + 6);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Joueur 1: █");
+                Console.ResetColor();
+
+                Console.SetCursorPosition(COIN_FENETRE_X + 25, COIN_FENETRE_Y + 6);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Joueur 2: █");
+                Console.ResetColor();
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+            /// <summary>
+            /// Gère les déplacements dans la grille de navigation.
+            /// </summary>
+            void DeplacementsGrilleNavigation()
+            {
+                const byte VALEUR_DEPLACEMENT_GRILLE = 1; //Valeur qui correspond au saut pour atteindre la case suivante dans le tableau.
+                const byte VALEUR_DEPLACEMENT_CURSEUR = 4;
+                const byte CASE_DEPART = 0;       //Point de départ dans le tableau on commence à la case 1.
+                const byte LIGNE_DEPLACEMENT = 1;  //La grille de navigation est modifiable uniquement sur l'index 1 en y.
+
+                int idJoueur = 0;   //Grâce à la fonction couleur joueur nous allons récupérer l'id joueur (1/2).
+                int iCase = CASE_DEPART;    //Index qui permet de se déplacer dans le tableau.
+                int iSetCurseur = VALEUR_DEPLACEMENT_CURSEUR / 2; // de déplacement dans le terminal.
+                int iTour = 0; //Toujour initialement à 0 pour le joueur 1.
+
+                ConsoleKey key;
+
+                idJoueur = TourJoueurCouleur(iTour);
+
+                do
+                {
+                    Console.CursorVisible = false;
+                    Console.SetCursorPosition(POS_GRILLE_NAVIGATION_X + iSetCurseur, POS_GRILLE_NAVIGATION_Y + LIGNE_DEPLACEMENT);
+                    Console.Write("█");
+
+                    key = Console.ReadKey().Key;
+
+                    switch (key)
+                    {
+                        case ConsoleKey.LeftArrow:
+                            CaseVide(POS_GRILLE_NAVIGATION_X + iSetCurseur, POS_GRILLE_NAVIGATION_Y + LIGNE_DEPLACEMENT);
+
+                            iSetCurseur -= VALEUR_DEPLACEMENT_CURSEUR;
+                            iSetCurseur = IndiceLimiteGeneral(iSetCurseur, nbColones, true);
+
+                            iCase -= VALEUR_DEPLACEMENT_GRILLE;
+                            iCase = IndiceLimiteGeneral(iCase, nbColones, false);
+                            break;
+
+                        case ConsoleKey.RightArrow:
+                            CaseVide(POS_GRILLE_NAVIGATION_X + iSetCurseur, POS_GRILLE_NAVIGATION_Y + LIGNE_DEPLACEMENT);
+
+                            iSetCurseur += VALEUR_DEPLACEMENT_CURSEUR;
+                            iSetCurseur = IndiceLimiteGeneral(iSetCurseur, nbColones, true);
+
+                            iCase += VALEUR_DEPLACEMENT_GRILLE;
+                            iCase = IndiceLimiteGeneral(iCase, nbColones, false);
+                            break;
+
+                        case ConsoleKey.Enter:
+                        case ConsoleKey.Spacebar:
+                            if (PoserJeton(iCase, iSetCurseur, idJoueur)) //Si le tableau n'est pas plein à cet index on empile un jeton supp.	
+                            {
+                                CaseVide(POS_GRILLE_NAVIGATION_X + iSetCurseur, POS_GRILLE_NAVIGATION_Y + LIGNE_DEPLACEMENT);
+
+                                if (!ChercherGagnant(idJoueur))
+                                {
+                                    iTour++;
+                                    idJoueur = TourJoueurCouleur(iTour);
+                                }
+
+                            }
+                            break;
+
+                        case ConsoleKey.Escape:
+                            break;
+                    }
+
+                    gagnantTrouve = ChercherGagnant(idJoueur);
+
+                } while (key != ConsoleKey.Escape && !gagnantTrouve);
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Change la couleur du curseur selon le tour du joueur.
+            /// </summary>
+            /// <param name="iTour">Numéro du tour de jeu.</param>
+            int TourJoueurCouleur(int iTour)
+            {
+                if (iTour % 2 == 0) // Si le tour est paire joueur 1 donc couleur rouge.
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    return JOUEUR1;
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    return JOUEUR2;
+                }
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            // <summary>
+            /// Pose un jeton dans la colonne sélectionnée avec gestion de la gravité.
+            /// Retourne true si le jeton est posé, false si la colonne est pleine.
+            /// </summary>
+            /// <param name="posJeu">Index de colonne dans le tableau du jeu.</param>
+            /// <param name="iSetCurseur">Position curseur pour affichage.</param>
+            /// <returns>Vrai si le jeton a pu être posé, faux sinon.</returns>
+            bool PoserJeton(int posJeu, int iSetCurseur, int idJoueur)
+            {
+                byte iLigneTableau = 0; //Index suivit tableau jeuJetons
+                byte iLigneGrille = 1;  //Index suivit grillePrincipale dans la console avec la position setCurseur
+                const byte TEMPS_PAUSE_AFFICHAGE = 30; // Temps en millisecondes pour le sleep, effet de gravité à la clé.
+                const byte DEPLACEMENT_VERTICAL_TAB = 1; //Valeur déplacement dans tableau jeu.
+                const byte DEPLACEMENT_VERTICAL_CURSEUR = 2; //Valeur déplacement vertical setCurseur dans grillePrincipale.
+
+                CaseVide(POS_GRILLE_NAVIGATION_X + iSetCurseur, POS_GRILLE_NAVIGATION_Y + iLigneGrille);
+
+                while (iLigneTableau < (nbLignes / 2) && grilleJeu[iLigneTableau, posJeu] != JOUEUR1 && grilleJeu[iLigneTableau, posJeu] != JOUEUR2) //Si la valeur à l'index grilleJeu correspond à 1 c'est qu'il y'a un jeton.
+                {
+                    Console.SetCursorPosition(POS_GRILLE_PRINCIPALE_X + iSetCurseur, POS_GRILLE_PRINCIPALE_Y + iLigneGrille);
+                    Console.Write("█");
+
+                    System.Threading.Thread.Sleep(TEMPS_PAUSE_AFFICHAGE);   // Je met en pause le programme pour entre chaque affichage de case pour donner un effet de gravité.
+                    CaseVide(POS_GRILLE_PRINCIPALE_X + iSetCurseur, POS_GRILLE_PRINCIPALE_Y + iLigneGrille);
+
+                    iLigneTableau += DEPLACEMENT_VERTICAL_TAB;
+                    iLigneGrille += DEPLACEMENT_VERTICAL_CURSEUR;
+                }
+
+                if (iLigneTableau > 0) //Si tableau n'est pas rempli.
+                {
+                    iLigneGrille -= DEPLACEMENT_VERTICAL_CURSEUR; // La boucle va trop loin dans l'incrémentation d'un saut on recule d'un déplacement avant l'insertion du jeton.
+                    iLigneTableau--; // La boucle va trop loin dans l'incrémentation d'un saut on recule d'un déplacement avant l'insertion du jeton.
+
+                    grilleJeu[iLigneTableau, posJeu] = idJoueur;
+
+                    Console.SetCursorPosition(POS_GRILLE_PRINCIPALE_X + iSetCurseur, POS_GRILLE_PRINCIPALE_Y + iLigneGrille);
+                    Console.Write("█");
+
+                    return true; // On renvoie true si le tableau est rempli sans debordement.
+                }
+
+                return false; // Dans le case ou le tableau est plein on renvoie un false en bool.
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Limite les index de déplacement pour éviter les débordements visuels et logiques.
+            /// </summary>
+            /// <param name="indice">Index calculé.</param>
+            /// <param name="nbColones">Nombre de colonnes.</param>
+            /// <param name="estCurseur">True si curseur d’affichage, false sinon.</param>
+            /// <returns>Index limité dans les bornes du tableau ou de l'affichage.</returns>
+            int IndiceLimiteGeneral(int indice, int nbColones, bool estCurseur)
+            {
+                int caseDepart = 0, caseFinale = 0;
+
+                if (estCurseur) //Si on parle d'index de déplacement console.
+                {
+                    caseDepart = 2;
+                    caseFinale = nbColones * 2 - 1;
+                    if (indice > caseFinale)
+                        return caseDepart;
+                    else if (indice < 0)
+                        return caseFinale - 3; //Dernière case en setCurseur.
+                }
+                else //Si on parle d'index de déplacement tableau.
+                {
+                    caseDepart = 0;
+                    caseFinale = (nbColones / 2) - 1;
+                    if (indice > caseFinale)
+                        return caseDepart;
+                    else if (indice < 0)
+                        return caseFinale; //Dernière case en index tableau jeuJetons.
+                }
+
+                return indice; //Si on rentre pas dans les case limite on revoie uniquement la valeur tel quelle.
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            /// <summary>
+            /// Vide une case de la grille à la position donnée.
+            /// </summary>
+            /// <param name="posX">Position X dans le terminal.</param>
+            /// <param name="posY">Position Y dans le terminal.</param>
+            void CaseVide(int posX, int posY)
+            {
+                Console.SetCursorPosition(posX, posY);
+                Console.Write("  "); //On efface le bloc du joueur par un espace.
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            bool ChercherGagnant(int idJoueur)
+            {
+                Console.SetCursorPosition(90, 20);
+
+                if (GainHorizontale(idJoueur))
+                {
+                    Console.SetCursorPosition(90, 20);
+                    Console.WriteLine("ECHOUEYYYY LE JOUEUR" + idJoueur + " Vous a SECHEYY.");
+                    return true;
+                }
+                else if (GainVertical(idJoueur))
+                {
+                    Console.SetCursorPosition(90, 20);
+                    Console.WriteLine("ECHOUEYYYY LE JOUEUR" + idJoueur + " Vous a SECHEYY.");
+                    return true;
+                }
+                else if (GainDiagonaleDescente(idJoueur))
+                {
+                    Console.SetCursorPosition(90, 20);
+                    Console.WriteLine("ECHOUEYYYY LE JOUEUR" + idJoueur + " Vous a SECHEYY.");
+                    return true;
+                }
+                else if (GainDiagonaleMontee(idJoueur))
+                {
+                    Console.SetCursorPosition(90, 20);
+                    Console.WriteLine("ECHOUEYYYY LE JOUEUR" + idJoueur + " Vous a SECHEYY.");
+                    return true;
+                }
+                else
+                    return false;
+
+            }
+
+
+            /*************************************************************************************************************************************************************************************************/
+
+            bool GainHorizontale(int idJoueur)
+            {
+                int compteur = 0;
+                for (int iLigne = 0; iLigne < nbLignes / 2; iLigne++)
+                {
+                    compteur = 0;
+                    for (int iJeton = 0; iJeton < nbColones / 2; iJeton++)
+                    {
+                        if (grilleJeu[iLigne, iJeton] == idJoueur)
+                            compteur++;
+                        else
+                            compteur = 0;
+
+                        if (compteur == GAIN)
+                            return true;
+                    }
+                }
+                return false;
+
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            bool GainVertical(int idJoueur)
+            {
+                int compteur = 0;
+                for (int iColone = 0; iColone < nbColones / 2; iColone++)
+                {
+                    compteur = 0;
+                    for (int iJeton = 0; iJeton < nbLignes / 2; iJeton++)
+                    {
+                        if (grilleJeu[iJeton, iColone] == idJoueur)
+                            compteur++;
+                        else
+                            compteur = 0;
+
+                        if (compteur == GAIN)
+                            return true;
+                    }
+                }
+                return false;
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+
+            bool GainDiagonaleDescente(int idJoueur)
+            {
+                int compteur = 0;
+                int iLigne = 0, iColone = 0;
+
+                for (int i = 0; i < (nbLignes / 2); i++)
+                {
+                    iLigne = i;
+                    iColone = 0;
+                    compteur = 0;
+                    while ((iLigne < nbLignes / 2) && (iColone < nbColones / 2))
+                    {
+                        if (grilleJeu[iLigne, iColone] == idJoueur)
+                            compteur++;
+                        else
+                            compteur = 0;
+
+
+                        if (compteur == GAIN)
+                            return true;
+
+                        iLigne++;
+                        iColone++;
+                    }
+                }
+
+                for (int j = 0; j < (nbColones / 2); j++)
+                {
+                    iLigne = 0;
+                    iColone = j;
+                    compteur = 0;
+                    while ((iLigne < nbLignes / 2) && (iColone < nbColones / 2))
+                    {
+                        if (grilleJeu[iLigne, iColone] == idJoueur)
+                            compteur++;
+                        else
+                            compteur = 0;
+
+
+                        if (compteur == GAIN)
+                            return true;
+
+                        iLigne++;
+                        iColone++;
+                    }
+                }
+                return false;
+            }
+
+            /*************************************************************************************************************************************************************************************************/
+
+            bool GainDiagonaleMontee(int idJoueur)
+            {
+                int compteur = 0;
+                int iLigne = 0, iColone = 0;
+
+                for (int i = 0; i < nbLignes / 2; i++)
+                {
+                    iLigne = i;
+                    compteur = 0;
+                    iColone = (nbColones / 2) - 1;
+                    while ((iLigne < nbLignes / 2) && (iColone > -1))
+                    {
+                        if (grilleJeu[iLigne, iColone] == idJoueur)
+                            compteur++;
+                        else
+                            compteur = 0;
+
+
+                        if (compteur == GAIN)
+                            return true;
+
+                        iLigne++;
+                        iColone--;
+                    }
+                }
+
+
+                for (int j = (nbColones / 2) - 1; j > -1; j--)
+                {
+                    iColone = j;
+                    compteur = 0;
+                    iLigne = 0;
+
+                    while ((iLigne < nbLignes / 2) && (iColone > -1))
+                    {
+                        if (grilleJeu[iLigne, iColone] == idJoueur)
+                            compteur++;
+                        else
+                            compteur = 0;
+
+
+                        if (compteur == GAIN)
+                            return true;
+
+                        iLigne++;
+                        iColone--;
+                    }
+                }
+                return false;
+            }
+        }
+
+    }
+}
+
